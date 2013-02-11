@@ -11,7 +11,7 @@ set autoindent                " always set autoindenting on
 set autoread                  " auto read files chaged on disk
 set background=light          " we are using dark background in vim
 set backspace=2               " allow backspacing over autoindent, EOL, and BOL
-set clipboard+=unnamed        " sharing windows clipboard
+set clipboard=unnamedplus        " sharing windows clipboard
 set completeopt=menuone,longest,preview
 set cursorline                " have a line indicate the cursor location
 set encoding=utf-8            " set enconding for file
@@ -112,8 +112,6 @@ let g:syntastic_quiet_warnings=0
 let mapleader=','
 
 map <silent><leader>v :sp ~/.vimrc<CR><C-W>_
-map <silent><leader>V :source ~/.vimrc<CR>:exe ":echo 'vimrc reloaded'"<CR>
-
 map <silent><leader>t <Plug>TaskList
 map <silent><leader>n :NERDTreeToggle<CR>
 nmap <silent><leader>a <Esc>:Ack!
@@ -156,6 +154,13 @@ noremap <End>       <NOP>
 noremap <PageUp>    <NOP>
 noremap <PageDown>  <NOP>
 
+"ident using tab/s-tab
+vnoremap < <gv
+vnoremap > >gv
+
+"up/down on wrapped lines
+nnoremap j gj
+nnoremap k gk
 
 "autocmd FileType * setlocal colorcolumn=0
 autocmd BufNewFile,BufRead *.mako,*.mak setlocal ft=html
@@ -261,6 +266,8 @@ autocmd BufWritePost *.pdf silent !until [ -e ~/PDF/% ]; do sleep 1; done
 autocmd BufWritePost *.pdf silent !mv ~/PDF/% %:p:h
 au BufReadCmd *.docx,*.xlsx,*.pptx call zip#Browse(expand("<amatch>"))
 au BufReadCmd *.odt,*.ott,*.ods,*.ots,*.odp,*.otp,*.odg,*.otg call zip#Browse(expand("<amatch>"))
+" Reload
+autocmd BufWritePost .vimrc source ~/.vimrc<CR>:exe ":echo 'vimrc reloaded'"<CR>
 
 " Add the virtualenv's site-packages to vim path
 py << EOF
