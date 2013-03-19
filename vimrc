@@ -10,7 +10,7 @@ call pathogen#helptags()
 set autoindent                " always set autoindenting on
 set autoread                  " auto read files chaged on disk
 set background=light          " we are using dark background in vim
-set backspace=2               " allow backspacing over autoindent, EOL, and BOL
+set backspace=indent,eol,start " allow backspacing over autoindent, EOL, and BOL
 set clipboard=unnamedplus        " sharing windows clipboard
 set completeopt=menuone,longest,preview
 set cursorline                " have a line indicate the cursor location
@@ -86,13 +86,15 @@ set softtabstop=4             " <BS> over an autoindent deletes both spaces.
 set statusline=%<%F%h%m%r%h%w\ %y\ %{fugitive#statusline()}\ %{&ff}\ %{strftime(\"%d/%m/%Y-%H:%M\")}%=\ col:%c%V\ ascii:%b\ pos:%o\ lin:%l\,%L\ %P
 set t_Co=256                 " set 256 color on terminal
 set ttyfast                  " 
-set tabstop=4                 " <tab> inserts 4 spaces 
-"set title                     " show title in console title bar
-set vb t_vb=                  " don't blink 
-set virtualedit=all           " Allow the cursor to go in to "invalid" places
+set tabstop=4                " <tab> inserts 4 spaces 
+set title                   " show title in console title bar
+set undolevels=1000          " use many muchos levels of undo
+set vb t_vb=                 " don't blink 
+set visualbell               " don't beep
+set virtualedit=all          " Allow the cursor to go in to "invalid" places
 set wildignore+=*.o,*.obj,.git,*.pyc
-set wildmenu                  " menu completion in command mode on <Tab>
-set wildmode=full             " <Tab> cycles between all matching choices.
+set wildmenu                 " menu completion in command mode on <Tab>
+set wildmode=full            " <Tab> cycles between all matching choices.
 
 let g:ackprg="ack-grep -H --nocolor --nogroup --column"
 let g:ctrlp_map = '<leader>p'
@@ -162,20 +164,32 @@ vnoremap > >gv
 nnoremap j gj
 nnoremap k gk
 
-"autocmd FileType * setlocal colorcolumn=0
-autocmd BufNewFile,BufRead *.mako,*.mak setlocal ft=html
-autocmd FileType html,xhtml,xml,css setlocal expandtab shiftwidth=2 tabstop=2 softtabstop=2
+" save files that need root access
+cmap w!! w !sudo tee % > /dev/null
 
-autocmd FileType python set omnifunc=pythoncomplete#Complete
-autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=8 softtabstop=4 smartindent cinwords=if,elif,else,for,while,try,except,finally,def,class,with
-autocmd BufRead *.py set efm=%C\ %.%#,%A\ \ File\ \"%f\"\\,\ line\ %l%.%#,%Z%[%^\ ]%\\@=%m
-autocmd InsertEnter * highlight StatusLine term=reverse ctermbg=5 gui=undercurl guisp=Magenta
-autocmd InsertLeave * highlight StatusLine term=reverse ctermfg=0 ctermbg=2 gui=bold,reverse
-
-"augroup vimrc_autocmds
-"    autocmd BufEnter * highlight OverLength ctermbg=darkblue guibg=#592929
-"    autocmd BufEnter * match OverLength /\%79v.*/
-"augroup END
+if has('autocmd')
+    autocmd BufNewFile,BufRead *.mako,*.mak setlocal ft=html
+    autocmd BufEnter * lcd %:p:h
+    autocmd BufNewFile,BufRead * syn match brancomala '\s\+$' | hi def brancomala ctermbg=red
+    autocmd BufRead *.py set efm=%C\ %.%#,%A\ \ File\ \"%f\"\\,\ line\ %l%.%#,%Z%[%^\ ]%\\@=%m
+    autocmd BufReadCmd *.docx,*.xlsx,*.pptx call zip#Browse(expand("<amatch>"))
+    autocmd BufReadCmd *.odt,*.ott,*.ods,*.ots,*.odp,*.otp,*.odg,*.otg call zip#Browse(expand("<amatch>"))
+    autocmd BufReadPost *.pdf silent %!pdftotext "%" -nopgbrk -layout -q -eol unix -
+    autocmd BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal g`\"" | endif
+    autocmd BufReadPre *.pdf set ro nowrap
+    autocmd BufWritePost * if getline(1) =~ "^#!" | if getline(1) =~ "/bin/" | silent !chmod a+x <afile> | endif | endif
+    autocmd BufWritePost *.pdf silent !lp -s -d pdffg "%"
+    autocmd BufWritePost *.pdf silent !mv ~/PDF/% %:p:h
+    autocmd BufWritePost *.pdf silent !rm -rf ~/PDF/%
+    autocmd BufWritePost *.pdf silent !until [ -e ~/PDF/% ]; do sleep 1; done
+    autocmd BufWritePost .vimrc source ~/.vimrc<CR>:exe ":echo 'vimrc reloaded'"<CR>
+    autocmd FileType html,xhtml,xml,css setlocal expandtab shiftwidth=2 tabstop=2 softtabstop=2
+    autocmd FileType python set omnifunc=pythoncomplete#Complete expandtab
+    autocmd FileType python setlocal expandtab shiftwidth=4 tabstop=8 softtabstop=4 smartindent cinwords=if,elif,else,for,while,try,except,finally,def,class,with
+    autocmd InsertEnter * highlight StatusLine term=reverse ctermbg=5 gui=undercurl guisp=Magenta
+    autocmd InsertLeave * highlight StatusLine term=reverse ctermfg=0 ctermbg=2 gui=bold,reverse
+    autocmd vimenter * call s:SetupSnippets()
+end
 
 " show a line at column 79
 if exists("&colorcolumn")
@@ -184,34 +198,37 @@ if exists("&colorcolumn")
     set formatoptions=qrn1
 endif
 
-syn match fatal ".*FATAL.*"
-syn match error ".*ERROR.*"
-syn match warn  ".*WARN.*"
-syn match debug ".*DEBUG.*"
-syn match info ".*INFO.*"
+syn match fatal ".*Fatal.*"
+syn match error ".*Error.*"
+syn match warn  ".*Warn.*"
+syn match debug ".*Debug.*"
+syn match info ".*Info.*"
 
 syn match error "^java.*Exception.*"
 syn match error "^java.*Error.*"
 syn match error ".* R\ \w.*"
 syn match error "^\tat .*"
-syn match retain "^\ +.*"
-syn match retain "^\ -.*"
 
 " Highlight colors for log levels.
 hi def fatal ctermfg=Red ctermbg=Black
 hi def error ctermfg=Red ctermbg=Black
 hi def warn ctermfg=Yellow ctermbg=Black
 hi def debug ctermfg=Gray ctermbg=Black
-hi def retain ctermfg=Green ctermbg=Black
 hi def info ctermfg=Green ctermbg=Black
 
 
-autocmd BufEnter * lcd %:p:h
-autocmd bufwritepost * if getline(1) =~ "^#!" | if getline(1) =~ "/bin/" | silent !chmod a+x <afile> | endif | endif
-" Find useless spaces
-autocmd BufNewFile,BufRead * syn match brancomala '\s\+$' | hi def brancomala ctermbg=red
-"snipmate setup
-autocmd vimenter * call s:SetupSnippets()
+function! Itau(ano)
+    let ano = a:ano
+    g/SALDO/d
+    %s/^\(\d\d\/\d\d\)/\1\/ano/g "converter para colocar o ano corrente
+    %s/^\(\d\d\)\/\(\d\d\)\/\(\d\d\d\d\)/\3-\2-\1/g "colocar a data no formato correto
+    %s/\s\+$// " remover os espacos no final da linha
+    %s/\s\+\s\+/\t/g " substituir os espacos por tab
+    %s/\(\d\d\d\d-\d\d-\d\d\)\t\(.*\)\t\(.*\)\t\(\d.*\)/\1\t\3\t\2/g " colocar os dados no formato correto
+    %s/\(\d\d\d\d-\d\d-\d\d\)\t\(\D.*\)\t\(.*\)/\1\t\3\t\2/g " colocar os dados no formato correto
+    %s/\(\t\)\(.*\)\(-\)\(\t\)/\1\3\2\4/g " coloca o sinal de negativo no local correto
+endfunction
+
 function! s:SetupSnippets()
 
     "if we're in a rails env then read in the rails snippets
@@ -243,10 +260,10 @@ function! Browser ()
 endfunction
 
 if has("gui_running")
-    set columns=160
+    set columns=80
     set guifont=DejaVu\ Sans\ Mono\ for\ Powerline\ 10
     set guitablabel=%M%t
-    set lines=36
+    set lines=40
 endif
 cabbr <expr> %% expand('%:p:h')
 
@@ -256,18 +273,7 @@ cabbr <expr> %% expand('%:p:h')
 "let g:solarized_visibility="low"
 colorscheme skittles_berry
 
-"Read PDF Files
-autocmd BufReadPre *.pdf set ro nowrap
-autocmd BufReadPost *.pdf silent %!pdftotext "%" -nopgbrk -layout -q -eol unix -
-"autocmd BufReadPost *.pdf silent %!pdftotext -nopgbrk "%" - |fmt -csw78
-autocmd BufWritePost *.pdf silent !rm -rf ~/PDF/%
-autocmd BufWritePost *.pdf silent !lp -s -d pdffg "%"
-autocmd BufWritePost *.pdf silent !until [ -e ~/PDF/% ]; do sleep 1; done
-autocmd BufWritePost *.pdf silent !mv ~/PDF/% %:p:h
-au BufReadCmd *.docx,*.xlsx,*.pptx call zip#Browse(expand("<amatch>"))
-au BufReadCmd *.odt,*.ott,*.ods,*.ots,*.odp,*.otp,*.odg,*.otg call zip#Browse(expand("<amatch>"))
-" Reload
-autocmd BufWritePost .vimrc source ~/.vimrc<CR>:exe ":echo 'vimrc reloaded'"<CR>
+
 
 " Add the virtualenv's site-packages to vim path
 py << EOF

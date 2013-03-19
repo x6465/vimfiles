@@ -2,7 +2,12 @@
 clear 
 
 echo -e "\033[1mInstalling important packages\033[0m"
-sudo apt-get install ncurses-term ctags curl git-core pyflakes pylint vim-gnome
+#sudo apt-get install ncurses-term ctags curl git-core pyflakes pylint vim-gnome
+#sudo apt-get install libncurses5-dev libgnome2-dev libgnomeui-dev \
+#libgtk2.0-dev libatk1.0-dev libbonoboui2-dev \
+#libcairo2-dev libx11-dev libxpm-dev libxt-dev python-dev mercurial
+sudo apt-get install build-essential ncurses-term ctags curl git-core mercurial pyflakes pylint libsqlite3-dev sqlite3 bzip2 libbz2-dev libncursesw5-dev libreadline6-dev libssl-dev libgdbm-dev libc6-dev libsqlite3-dev tk-dev
+
 
 #echo -e "\033[1mInstalling RVM package\033[0m"
 #bash < <(curl -s https://raw.github.com/wayneeseguin/rvm/master/binscripts/rvm-installer)
